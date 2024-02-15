@@ -1,7 +1,7 @@
-package api
+package main
 
 import (
-	"fmt"
+	"goapi/handler"
 	"net/http"
 
 	. "github.com/tbxark/g4vercel"
@@ -10,20 +10,9 @@ import (
 func Handler(w http.ResponseWriter, r *http.Request) {
 	server := New()
 
-	server.GET("/", rootCheck)
-	server.POST("/upload", upload)
-	server.GET("/hello", func(context *Context) {
-		name := context.Query("name")
-		if name == "" {
-			context.JSON(400, H{
-				"message": "name not found",
-			})
-		} else {
-			context.JSON(200, H{
-				"data": fmt.Sprintf("Hello %s!", name),
-			})
-		}
-	})
+	server.GET("/", handler.RootCheck)
+	server.POST("/upload", handler.Upload)
+	server.GET("/hello", handler.Hello)
 	server.GET("/user/:id", func(context *Context) {
 		context.JSON(400, H{
 			"data": H{

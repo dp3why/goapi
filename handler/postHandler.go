@@ -1,16 +1,17 @@
-package api
+package handler
 
 import (
 	"encoding/json"
+	"goapi/model"
 
 	. "github.com/tbxark/g4vercel"
 )
 
  
-func upload(context *Context) {
+func Upload(context *Context) {
 	body := context.Req.Body
 	decoder := json.NewDecoder(body)
-	var p Post
+	var p  model.Post
 	if err := decoder.Decode(&p); err != nil {
 		context.JSON(400, H{
 			"message": "bad requrest",

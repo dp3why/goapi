@@ -1,4 +1,4 @@
-package api
+package model
 
 type Post struct {
 	Id	  string `json:"id"`
