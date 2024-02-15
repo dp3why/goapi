@@ -1,7 +1,7 @@
-package main
+package handler
 
 import (
-	"goapi/handler"
+	"goapi/service"
 	"net/http"
 
 	. "github.com/tbxark/g4vercel"
@@ -10,9 +10,9 @@ import (
 func Handler(w http.ResponseWriter, r *http.Request) {
 	server := New()
 
-	server.GET("/", handler.RootCheck)
-	server.POST("/upload", handler.Upload)
-	server.GET("/hello", handler.Hello)
+	server.GET("/", service.RootCheck)
+	server.POST("/upload", service.Upload)
+	server.GET("/hello", service.Hello)
 	server.GET("/user/:id", func(context *Context) {
 		context.JSON(400, H{
 			"data": H{
