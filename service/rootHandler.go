@@ -1,4 +1,4 @@
-package handler
+package service
 
 import (
 	. "github.com/tbxark/g4vercel"
