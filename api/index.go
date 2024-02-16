@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"fmt"
+	"goapi/backend"
 	"goapi/service"
 	"net/http"
 
@@ -8,24 +10,19 @@ import (
 )
  
 func Handler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Server starts...")
+	// init elasticsearch backend
+	backend.InitElasticsearchBackend()
+	
+	// create server
 	server := New()
-
+	// define route
 	server.GET("/", service.RootCheck)
 	server.POST("/upload", service.Upload)
 	server.GET("/hello", service.Hello)
-	server.GET("/user/:id", func(context *Context) {
-		context.JSON(400, H{
-			"data": H{
-				"id": context.Param("id"),
-			},
-		})
-	})
-	server.GET("/long/long/long/path/*test", func(context *Context) {
-		context.JSON(200, H{
-			"data": H{
-				"url": context.Path,
-			},
-		})
-	})
+	server.GET("/user/:id", service.GetUserInfo)
+	server.GET("/long/long/long/path/*test", service.GetPathTest)
+
+	// handle request
 	server.Handle(w, r)
 }

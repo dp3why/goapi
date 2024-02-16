@@ -18,3 +18,20 @@ func Hello(context *Context) {
 		})
 	}
 }
+
+func GetUserInfo(context *Context) {
+	id := context.Param("id")
+	context.JSON(200, H{
+		"data": H{
+			"id": id,
+		},
+	})
+}
+
+func GetPathTest(context *Context) {
+	context.JSON(200, H{
+		"data": H{
+			"url": context.Path,
+		},
+	})
+}
