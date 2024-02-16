@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/dp3why/mrgo/constants"
+	"goapi/constants"
+
 	elasticsearch "github.com/elastic/go-elasticsearch/v7"
 )
 
