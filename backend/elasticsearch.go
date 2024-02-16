@@ -3,12 +3,14 @@ package backend
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 
 	"goapi/constants"
 
 	elasticsearch "github.com/elastic/go-elasticsearch/v7"
+	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
 var (
@@ -89,4 +91,30 @@ func createIndex(es *elasticsearch.Client, indexName string, mapping string) {
 	}
 	fmt.Printf("Index %s created successfully\n", indexName)
 	res.Body.Close()
+}
+
+
+
+// ReadFromES searches documents in the specified index based on the query.
+// The query parameter should be a map[string]interface{} representing the Elasticsearch query DSL.
+func (backend *ElasticsearchBackend) ReadFromES(query map[string]interface{}, index string) (*esapi.Response, error) {
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(query); err != nil {
+		log.Fatalf("Error encoding query: %s", err)
+		return nil, err
+	}
+
+	// Perform the search request.
+	res, err := backend.Client.Search(
+		backend.Client.Search.WithContext(context.Background()),
+		backend.Client.Search.WithIndex(index),
+		backend.Client.Search.WithBody(&buf),
+		backend.Client.Search.WithPretty(),
+	)
+	if err != nil {
+		log.Fatalf("Error getting response: %s", err)
+		return nil, err
+	}
+
+	return res, nil
 }
