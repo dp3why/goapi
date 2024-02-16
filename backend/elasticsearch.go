@@ -3,12 +3,14 @@ package backend
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 
 	"goapi/constants"
 
 	elasticsearch "github.com/elastic/go-elasticsearch/v7"
+	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
 var (
@@ -92,3 +94,24 @@ func createIndex(es *elasticsearch.Client, indexName string, mapping string) {
 }
 
 
+
+// Adaptation for ReadFromES using the official Elasticsearch Go client
+func (backend *ElasticsearchBackend) ReadFromES(query map[string]interface{}, index string) (*esapi.Response, error) {
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(query); err != nil {
+		log.Fatalf("Error encoding query: %s", err)
+		return nil, err
+	}
+
+	res, err := backend.Client.Search(
+		backend.Client.Search.WithContext(context.Background()),
+		backend.Client.Search.WithIndex(index),
+		backend.Client.Search.WithBody(&buf),
+		backend.Client.Search.WithPretty(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
