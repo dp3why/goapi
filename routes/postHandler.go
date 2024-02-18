@@ -47,7 +47,8 @@ func Upload(context *Context) {
 	}
 
 	//  Retrieving file
-	file, header, err := context.Req.FormFile("media_file")
+	file, header, err := context.Req.FormFile("mediaFile")
+
 	if err != nil {
 		context.JSON(400, H{
 			"message": "Failed to retrieve media file",
