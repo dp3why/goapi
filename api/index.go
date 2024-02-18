@@ -19,6 +19,8 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// define route
 	server.GET("/", routes.RootCheck)
 	server.POST("/upload", routes.Upload)
+	server.GET("/search", routes.Search)
+	
 	server.GET("/hello", routes.Hello)
 	server.GET("/user/:id", routes.GetUserInfo)
 	server.GET("/long/long/long/path/*test", routes.GetPathTest)

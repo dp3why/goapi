@@ -1,117 +1,119 @@
 package backend
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 
 	"goapi/constants"
 
-	elasticsearch "github.com/elastic/go-elasticsearch/v7"
-	"github.com/elastic/go-elasticsearch/v7/esapi"
+	"github.com/olivere/elastic/v7"
 )
 
 var (
-	ESBackend *ElasticsearchBackend
+    ESBackend *ElasticsearchBackend
 )
 
 type ElasticsearchBackend struct {
-	Client *elasticsearch.Client
+    client *elastic.Client
 }
 
 func InitElasticsearchBackend() {
-	cfg := elasticsearch.Config{
-		Addresses: []string{
-			constants.ES_AWS_URL,
-		},
-		Username: constants.ES_USERNAME,
-		Password: constants.ES_AWS_PASSWORD,
-	}
+	// connection
+    client, err := elastic.NewClient(
+		elastic.SetSniff(false), 
+        elastic.SetURL(constants.ES_AWS_URL),
+        elastic.SetBasicAuth(constants.ES_USERNAME, constants.ES_AWS_PASSWORD))
+    if err != nil {
+        log.Fatalf("Error creating the client: %s", err)
+    }
 
-	es, err := elasticsearch.NewClient(cfg)
-	if err != nil {
-		log.Fatalf("Error creating the client: %s", err)
-	}
+	// part1 post index
+    exists, err := client.IndexExists(constants.POST_INDEX).Do(context.Background())
+    if err != nil {
+        log.Fatalf("Error checking if the index exists: %s", err)
+    }
 
-	// Check for the existence of the post index
-	res, err := es.Indices.Exists([]string{constants.POST_INDEX})
-	if err != nil {
-		log.Fatalf("Error checking existence of index: %s", err)
-	}
-	if res.StatusCode == 404 {
-		createIndex(es, constants.POST_INDEX, `{
-			"mappings": {
-				"properties": {
-					"id": { "type": "keyword" },
-					"user": { "type": "keyword" },
-					"message": { "type": "text" },
-					"url": { "type": "keyword", "index": false },
-					"type": { "type": "keyword", "index": false }
-				}
-			}
-		}`)
-	}
-	res.Body.Close()
+    if !exists {
+        mapping := `{
+            "mappings": {
+                "properties": {
+                    "id":       { "type": "keyword" },
+                    "user":     { "type": "keyword" },
+                    "message":  { "type": "text" },
+                    "url":      { "type": "keyword", "index": false },
+                    "type":     { "type": "keyword", "index": false }
+                }
+            }
+        }`
+        _, err := client.CreateIndex(constants.POST_INDEX).Body(mapping).Do(context.Background())
+        if err != nil {
+            log.Fatalf("Error creating the post index: %s", err)
+        }
+    }
 
-	// Check for the existence of the user index
-	res, err = es.Indices.Exists([]string{constants.USER_INDEX})
-	if err != nil {
-		log.Fatalf("Error checking existence of index: %s", err)
-	}
-	if res.StatusCode == 404 {
-		createIndex(es, constants.USER_INDEX, `{
-			"mappings": {
-				"properties": {
-					"username": { "type": "keyword" },
-					"password": { "type": "keyword" },
-					"age": { "type": "integer", "index": false },
-					"gender": { "type": "keyword", "index": false }
-				}
-			}
-		}`)
-	}
-	res.Body.Close()
 
-	fmt.Println("====== Indices created successfully ======")
-	ESBackend = &ElasticsearchBackend{
-		Client: es,
-	}
+	// part2 user index
+    exists, err = client.IndexExists(constants.USER_INDEX).Do(context.Background())
+    if err != nil {
+        panic(err)
+    }
+
+    if !exists {
+        mapping := `{
+                        "mappings": {
+                                "properties": {
+                                        "username": {"type": "keyword"},
+                                        "password": {"type": "keyword"},
+                                        "age":      {"type": "long", "index": false},
+                                        "gender":   {"type": "keyword", "index": false}
+                                }
+                        }
+                }`
+        _, err = client.CreateIndex(constants.USER_INDEX).Body(mapping).Do(context.Background())
+        if err != nil {
+            log.Fatalf("Error creating the user index: %s", err)
+        }
+    }
+    fmt.Println("Indexes are created.")
+
+    ESBackend = &ElasticsearchBackend{client: client}
 }
 
-func createIndex(es *elasticsearch.Client, indexName string, mapping string) {
-	res, err := es.Indices.Create(
-		indexName,
-		es.Indices.Create.WithContext(context.Background()),
-		es.Indices.Create.WithBody(bytes.NewReader([]byte(mapping))),
-	)
-	if err != nil || res.IsError() {
-		log.Fatalf("Error creating index: %s", err)
-	}
-	fmt.Printf("Index %s created successfully\n", indexName)
-	res.Body.Close()
+func (backend *ElasticsearchBackend) ReadFromES(query elastic.Query, index string) (*elastic.SearchResult, error) {
+    searchResult, err := backend.client.Search().
+        Index(index).
+        Query(query).
+        Pretty(true).
+        Do(context.Background())
+    if err != nil {
+        return nil, err
+    }
+
+    return searchResult, nil
 }
 
 
+func (backend *ElasticsearchBackend) SaveToES(i interface{}, index string, id string) error {
+    _, err := backend.client.Index().
+        Index(index).
+        Id(id).
+        BodyJson(i).
+        Do(context.Background())
+    if err != nil {
+        return err
+    }
+    return nil
+}
 
-// Adaptation for ReadFromES using the official Elasticsearch Go client
-func (backend *ElasticsearchBackend) ReadFromES(query map[string]interface{}, index string) (*esapi.Response, error) {
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(query); err != nil {
-		log.Fatalf("Error encoding query: %s", err)
-		return nil, err
-	}
-
-	res, err := backend.Client.Search(
-		backend.Client.Search.WithContext(context.Background()),
-		backend.Client.Search.WithIndex(index),
-		backend.Client.Search.WithBody(&buf),
-		backend.Client.Search.WithPretty(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
+func (backend *ElasticsearchBackend) DeleteFromES(query elastic.Query, index string) error {
+    _, err := backend.client.DeleteByQuery().
+        Index(index).
+        Query(query).
+        Pretty(true).
+        Do(context.Background())
+    if err != nil {
+        return err
+    }
+    return nil
 }
