@@ -2,6 +2,7 @@ package routes
 
 import (
 	"encoding/json"
+	"fmt"
 	"goapi/model"
 	"goapi/service"
 	"log"
@@ -27,7 +28,7 @@ var (
  
 // 1. upload
 func Upload(context *Context) {
-
+	
 	// parse multipart form from body
 	err := context.Req.ParseMultipartForm(32 << 20)
 	if err != nil {
@@ -36,6 +37,7 @@ func Upload(context *Context) {
 		})
 		return
 	}
+	fmt.Println("=====Upload func begins ... =========")
 	// Example of retrieving a form value
 	message := context.Req.FormValue("message")
 	username := context.Req.FormValue("username")
@@ -45,6 +47,9 @@ func Upload(context *Context) {
         User:   username,
         Message: message, 		
 	}
+	fmt.Println("message: ", username)
+	fmt.Println("message: ", message)
+	log.Default().Println("==============")
 
 	//  Retrieving file
 	file, header, err := context.Req.FormFile("mediaFile")

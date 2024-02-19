@@ -51,6 +51,7 @@ func InitGCSBackend() {
 func (backend *GoogleCloudStorageBackend) SaveTOGCS(r io.Reader, objectName string) (string, error) {
 	ctx := context.Background()
 	object := backend.client.Bucket(backend.bucket).Object(objectName)
+	fmt.Println("===== saving to GCS ==============")
 	wc := object.NewWriter(ctx)
 	if _, err := io.Copy(wc, r); err != nil {
 		return "", fmt.Errorf("io.Copy: %w", err)
@@ -62,6 +63,8 @@ func (backend *GoogleCloudStorageBackend) SaveTOGCS(r io.Reader, objectName stri
 		return "", fmt.Errorf("ACL().Set: %w", err)
 	}
 	
+    fmt.Println("======= Get link============")
+
 	attrs, err := object.Attrs(ctx)
 	if err != nil {
 		return "", fmt.Errorf("object.Attrs: %w", err)

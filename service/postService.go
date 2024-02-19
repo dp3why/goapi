@@ -47,6 +47,7 @@ func getPostFromSearchResult(searchResult *elastic.SearchResult) []model.Post {
 
 // ==== create a new post ====
 func SavePost(post model.Post, file multipart.File) ( error) {
+    
     medialink, err := backend.GCSBackend.SaveTOGCS(file, post.Id)
     if err != nil {
         return err
